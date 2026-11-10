@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14251f">
+  <meta name="description" content="TimeFlow: organiza tus actividades, enfócate y haz seguimiento de tu tiempo.">
+  <title>TimeFlow — Tu tiempo, en equilibrio</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f2;
+      --surface: #fff;
+      --surface-soft: #eef3ed;
+      --ink: #1c2c25;
+      --muted: #718078;
+      --line: #e4eae4;
+      --green: #5e9a72;
+      --green-dark: #14251f;
+      --green-soft: #e7f1e8;
+      --blue: #476f83;
+      --danger: #b24e48;
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--ink); background: var(--bg); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; }
+    .sidebar {
+      position: fixed; inset: 0 auto 0 0; z-index: 5; display: flex; flex-direction: column;
+      width: 248px; padding: 28px 15px 18px; color: #fff; background: var(--green-dark);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 0 10px; margin: 0 0 42px; }
+    .brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 13px; color: #fff; background: var(--green); font-weight: 800; font-size: 22px; }
+    .brand-name { font-size: 19px; font-weight: 750; letter-spacing: -.5px; }
+    .brand-caption { margin-top: 3px; color: #aab9b0; font-size: 9px; font-weight: 700; letter-spacing: 1.2px; }
+    .nav-label { padding: 0 12px; margin: 0 0 10px; color: #84948b; font-size: 10px; font-weight: 750; letter-spacing: 1px; }
+    .nav { display: grid; gap: 5px; }
+    .nav-button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 13px; border: 0; border-radius: 11px; color: #bac6bf; background: transparent; text-align: left; font-size: 13px; font-weight: 650; transition: .18s ease; }
+    .nav-button:hover { color: #fff; background: #20362c; }
+    .nav-button.active { color: #c4e2ca; background: #263b32; }
+    .nav-icon { width: 20px; text-align: center; font-size: 17px; }
+    .sidebar-bottom { margin-top: auto; padding: 15px 9px 3px; border-top: 1px solid #2b3d34; color: #9eaea5; font-size: 11px; }
+    .online-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #83c494; }
+    main { min-height: 100vh; margin-left: 248px; }
+    .main-inner { width: min(1160px, 100%); margin: auto; padding: 38px 42px 54px; }
+    .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 25px; }
+    .eyebrow { margin: 0 0 7px; color: var(--green); font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); letter-spacing: -1.1px; line-height: 1.15; }
+    .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .date-chip { flex: 0 0 auto; padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px; color: #506057; background: var(--surface); font-size: 11px; font-weight: 650; }
+    .hero { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; padding: 27px 30px; border-radius: var(--radius); color: white; background: var(--green-dark); }
+    .hero-kicker { margin: 0 0 8px; color: #a9d5b4; font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+    .hero h2 { margin: 0; font-size: clamp(20px, 2.5vw, 27px); letter-spacing: -.6px; }
+    .hero p { margin: 7px 0 0; color: #c1cec6; font-size: 12px; }
+    .clock-box { min-width: 168px; padding: 12px 17px; border: 1px solid #35483e; border-radius: 14px; background: #20362c; }
+    .clock-label { color: #aab9b0; font-size: 9px; font-weight: 750; letter-spacing: .8px; }
+    #clock { margin-top: 4px; font-size: 29px; font-weight: 750; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 16px; }
+    .card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .metric { min-height: 110px; padding: 19px 20px; }
+    .metric-label { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .45px; }
+    .metric-value { margin-top: 12px; font-size: 25px; font-weight: 750; letter-spacing: -.5px; }
+    .metric:nth-child(2) .metric-value { color: var(--green); }
+    .dashboard-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 14px; margin-top: 16px; }
+    .section-card { padding: 20px; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+    .section-heading h2 { margin: 0; font-size: 14px; letter-spacing: -.2px; }
+    .text-button { padding: 5px 0; border: 0; color: var(--green); background: transparent; font-size: 11px; font-weight: 750; }
+    .activity-list { display: grid; }
+    .activity-row { display: grid; grid-template-columns: 68px 1fr auto; align-items: center; gap: 12px; min-height: 57px; border-top: 1px solid #edf0ed; }
+    .activity-time { color: var(--green); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .activity-title { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-meta { margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .badge { display: inline-flex; align-items: center; width: fit-content; padding: 5px 8px; border-radius: 999px; color: #53705d; background: var(--green-soft); font-size: 9px; font-weight: 750; white-space: nowrap; }
+    .badge.done { color: #718078; background: #eff1ef; }
+    .next-box { padding: 16px; border-radius: 14px; background: var(--surface-soft); }
+    .next-box .activity-title { white-space: normal; font-size: 14px; }
+    .next-when { margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .empty { padding: 22px 12px; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.6; }
+    .primary-button, .secondary-button, .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 39px; padding: 9px 14px; border: 0; border-radius: 10px; font-size: 11px; font-weight: 750; transition: .16s ease; }
+    .primary-button { color: #fff; background: var(--green); }
+    .primary-button:hover { background: #4e8862; transform: translateY(-1px); }
+    .secondary-button { color: #40554a; background: var(--surface-soft); }
+    .secondary-button:hover { background: #e2eae1; }
+    .danger-button { color: var(--danger); background: #fbefed; }
+    .danger-button:hover { background: #f6dfdc; }
+    .full { width: 100%; }
+    .form-card { padding: 20px; margin-bottom: 17px; }
+    .form-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; align-items: end; gap: 12px; }
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field label { color: #5c6c63; font-size: 10px; font-weight: 750; }
+    .field input, .field select { width: 100%; min-height: 40px; padding: 9px 11px; outline: 0; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font-size: 11px; }
+    .field input:focus, .field select:focus { border-color: #89b896; box-shadow: 0 0 0 3px #e7f1e8; }
+    .agenda-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 21px 0 11px; }
+    .agenda-toolbar h2 { margin: 0; font-size: 14px; }
+    .filter-select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface); font-size: 10px; }
+    .table-card { overflow: hidden; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 12px 14px; color: var(--muted); background: #f1f4f0; font-size: 9px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 12px 14px; border-top: 1px solid #edf0ed; font-size: 11px; }
+    td:first-child { font-weight: 700; }
+    .row-actions { display: flex; gap: 6px; }
+    .icon-button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 8px; color: #587064; background: var(--surface-soft); }
+    .icon-button:hover { color: var(--ink); background: #dfe9de; }
+    .icon-button.delete { color: var(--danger); background: #fbefed; }
+    .timer-wrap { display: grid; min-height: 440px; place-items: center; padding: 24px; }
+    .timer-card { width: min(610px, 100%); padding: 30px; text-align: center; }
+    .timer-card .field { max-width: 470px; margin: auto; text-align: left; }
+    .timer-status { margin: 28px 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .timer-display { margin: 0 0 23px; color: var(--green); font-size: clamp(52px, 10vw, 76px); font-weight: 750; letter-spacing: -3px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .timer-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .timer-note { margin: 20px 0 0; color: var(--muted); font-size: 10px; }
+    .stats-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin: 20px 0; }
+    .stats-cards .metric-value { color: var(--green); }
+    .history-section { margin-top: 19px; }
+    .history-section .section-heading { padding: 0 2px; }
+    .small-note { color: var(--muted); font-size: 10px; }
+    .mobile-top { display: none; }
+    @media (max-width: 980px) {
+      .sidebar { width: 215px; }
+      main { margin-left: 215px; }
+      .main-inner { padding: 30px 25px 42px; }
+      .form-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .sidebar { position: sticky; inset: 0 0 auto; width: 100%; height: auto; padding: 10px 12px; }
+      .brand { margin: 0; padding: 0 2px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 10px; font-size: 18px; }
+      .brand-name { font-size: 16px; }
+      .brand-caption, .nav-label, .sidebar-bottom { display: none; }
+      .nav { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+      .nav-button { justify-content: center; gap: 6px; min-width: max-content; padding: 9px 11px; font-size: 10px; }
+      .nav-icon { font-size: 14px; }
+      main { margin-left: 0; }
+      .main-inner { padding: 25px 16px 38px; }
+      .page-header { align-items: flex-start; }
+      .date-chip { display: none; }
+      .hero { grid-template-columns: 1fr; padding: 21px; }
+      .clock-box { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; }
+      #clock { margin: 0; font-size: 22px; }
+      .metrics, .stats-cards { grid-template-columns: 1fr; gap: 9px; }
+      .metric { min-height: 84px; padding: 14px 16px; }
+      .metric-value { margin-top: 6px; font-size: 21px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid .field:first-child { grid-column: 1 / -1; }
+      .form-grid .primary-button { grid-column: 1 / -1; }
+      .timer-wrap { min-height: 400px; padding: 10px 0; }
+      .timer-card { padding: 22px 16px; }
+      .activity-row { grid-template-columns: 54px 1fr auto; gap: 8px; }
+      .section-card { padding: 16px; }
+      td, th { padding: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <div class="brand"><div class="brand-mark">T</div><div><div class="brand-name">TimeFlow</div><div class="brand-caption">TU TIEMPO, EN EQUILIBRIO</div></div></div>
+      <p class="nav-label">ESPACIO DE TRABAJO</p>
+      <nav class="nav">
+        <button class="nav-button active" data-page="home"><span class="nav-icon">⌂</span>Inicio</button>
+        <button class="nav-button" data-page="agenda"><span class="nav-icon">▦</span>Agenda</button>
+        <button class="nav-button" data-page="focus"><span class="nav-icon">◷</span>Enfoque</button>
+        <button class="nav-button" data-page="stats"><span class="nav-icon">▥</span>Resumen</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="online-dot"></span>Guardado en este dispositivo</div>
+    </aside>
+    <main><div class="main-inner" id="view" aria-live="polite"></div></main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "timeflow.web.v1";
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const safeText = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+      const isoToday = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      };
+      const defaultState = () => ({ activities: [], sessions: [], activeSession: null });
+      let state;
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        state = saved && Array.isArray(saved.activities) ? { ...defaultState(), ...saved } : defaultState();
+      } catch { state = defaultState(); }
+      let page = "home";
+      let activityFilter = "all";
+
+      const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const fmtDate = (value) => {
+        if (!value) return "";
+        return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`));
+      };
+      const fmtTime = (value) => value ? value.slice(0, 5) : "";
+      const duration = (seconds, showSeconds = false) => {
+        const safe = Math.max(0, Math.floor(seconds || 0));
+        const h = String(Math.floor(safe / 3600)).padStart(2, "0");
+        const m = String(Math.floor((safe % 3600) / 60)).padStart(2, "0");
+        const s = String(safe % 60).padStart(2, "0");
+        return showSeconds ? `${h}:${m}:${s}` : `${h}:${m}`;
+      };
+      const activityById = (id) => state.activities.find((activity) => activity.id === id);
+      const totalTracked = () => state.sessions.reduce((sum, session) => sum + (session.seconds || 0), 0) + (state.activeSession ? elapsed(state.activeSession) : 0);
+      const elapsed = (session) => (session.seconds || 0) + (session.startedAt ? Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000)) : 0);
+      const sortedActivities = () => [...state.activities].sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+      const upcomingActivity = () => sortedActivities().find((item) => !item.completed && (`${item.date} ${item.end}` >= `${isoToday()} ${new Date().toTimeString().slice(0, 5)}`));
+      const setPage = (next) => {
+        page = next;
+        $$(".nav-button").forEach((button) => button.classList.toggle("active", button.dataset.page === page));
+        render();
+      };
+
+      function pageHeader(eyebrow, title, subtitle, withDate = false) {
+        return `<header class="page-header"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="subtitle">${subtitle}</p></div>${withDate ? `<div class="date-chip">${new Intl.DateTimeFormat("es-CO", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date())}</div>` : ""}</header>`;
+      }
+      function activityRow(activity) {
+        return `<div class="activity-row"><div class="activity-time">${fmtTime(activity.start)}</div><div><div class="activity-title">${safeText(activity.name)}</div><div class="activity-meta">${safeText(activity.category)} · ${fmtTime(activity.start)}–${fmtTime(activity.end)}</div></div><span class="badge ${activity.completed ? "done" : ""}">${activity.completed ? "Completada" : "Pendiente"}</span></div>`;
+      }
+      function renderHome() {
+        const today = state.activities.filter((activity) => activity.date === isoToday()).sort((a, b) => a.start.localeCompare(b.start));
+        const next = upcomingActivity();
+        return `${pageHeader("Tu espacio personal", "Tu tiempo, en equilibrio.", "Organiza tus compromisos y disfruta cada avance.", true)}
+          <section class="hero"><div><p class="hero-kicker">UN MOMENTO PARA TI</p><h2>Avanza a tu ritmo.</h2><p>Planifica lo importante y deja espacio para concentrarte.</p></div><div class="clock-box"><div class="clock-label">HORA LOCAL</div><div id="clock">--:--:--</div></div></section>
+          <section class="metrics"><article class="card metric"><div class="metric-label">EN TU AGENDA HOY</div><div class="metric-value">${today.length}</div></article><article class="card metric"><div class="metric-label">TIEMPO ENFOCADO</div><div class="metric-value">${duration(totalTracked())}</div></article><article class="card metric"><div class="metric-label">TAREAS COMPLETADAS</div><div class="metric-value">${state.activities.filter((item) => item.completed).length}</div></article></section>
+          <section class="dashboard-grid"><article class="card section-card"><div class="section-heading"><h2>Lo que tienes hoy</h2><button class="text-button" data-go="agenda">Ver agenda →</button></div><div class="activity-list">${today.length ? today.slice(0, 5).map(activityRow).join("") : `<div class="empty">Tu día está despejado.<br>Agrega una actividad a tu agenda cuando quieras.</div>`}</div></article>
+          <article class="card section-card"><div class="section-heading"><h2>Siguiente en tu agenda</h2></div>${next ? `<div class="next-box"><div class="activity-title">${safeText(next.name)}</div><div class="next-when">${fmtDate(next.date)} · ${fmtTime(next.start)}–${fmtTime(next.end)}</div><div style="margin-top:14px"><span class="badge">${safeText(next.category)}</span></div></div><button class="primary-button full" style="margin-top:12px" data-go="focus">◷ &nbsp; Iniciar enfoque</button>` : `<div class="empty">No hay actividades próximas.<br>Un buen momento para planear lo que sigue.</div><button class="secondary-button full" data-go="agenda">＋ &nbsp; Agregar actividad</button>`}</article></section>`;
+      }
+      function renderAgenda() {
+        const visible = sortedActivities().filter((activity) => activityFilter === "all" || (activityFilter === "pending" ? !activity.completed : activity.completed));
+        return `${pageHeader("Planea con intención", "Tu agenda", "Organiza tus compromisos y mantén tu día en perspectiva.")}
+          <form class="card form-card" id="activity-form"><div class="form-grid"><div class="field"><label for="activity-name">Actividad</label><input id="activity-name" name="name" maxlength="80" placeholder="Ej. Preparar presentación" required></div><div class="field"><label for="activity-category">Categoría</label><select id="activity-category" name="category"><option>General</option><option>Trabajo</option><option>Estudio</option><option>Personal</option><option>Salud</option><option>Otro</option></select></div><div class="field"><label for="activity-date">Fecha</label><input id="activity-date" name="date" type="date" value="${isoToday()}" required></div><div class="field"><label for="activity-start">Inicio</label><input id="activity-start" name="start" type="time" required></div><div class="field"><label for="activity-end">Fin</label><input id="activity-end" name="end" type="time" required></div><button class="primary-button" type="submit">＋ &nbsp; Agregar</button></div></form>
+          <div class="agenda-toolbar"><h2>Actividades programadas <span class="small-note">(${visible.length})</span></h2><select class="filter-select" id="activity-filter" aria-label="Filtrar actividades"><option value="all" ${activityFilter === "all" ? "selected" : ""}>Todas</option><option value="pending" ${activityFilter === "pending" ? "selected" : ""}>Pendientes</option><option value="done" ${activityFilter === "done" ? "selected" : ""}>Completadas</option></select></div>
+          <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Horario</th><th>Categoría</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${visible.length ? visible.map((item) => `<tr><td>${safeText(item.name)}</td><td>${fmtDate(item.date)}</td><td>${fmtTime(item.start)} – ${fmtTime(item.end)}</td><td>${safeText(item.category)}</td><td><span class="badge ${item.completed ? "done" : ""}">${item.completed ? "Completada" : "Pendiente"}</span></td><td><div class="row-actions">${!item.completed ? `<button class="icon-button" title="Marcar como completada" aria-label="Marcar ${safeText(item.name)} como completada" data-complete="${item.id}">✓</button>` : ""}<button class="icon-button delete" title="Eliminar actividad" aria-label="Eliminar ${safeText(item.name)}" data-delete="${item.id}">×</button></div></td></tr>`).join("") : `<tr><td colspan="6"><div class="empty">No hay actividades para mostrar.<br>Usa el formulario de arriba para agregar una.</div></td></tr>`}</tbody></table></div></div>`;
+      }
+      function renderFocus() {
+        const active = state.activeSession;
+        const pending = sortedActivities().filter((activity) => !activity.completed);
+        const options = pending.map((item) => `<option value="${item.id}" ${active?.activityId === item.id ? "selected" : ""}>${safeText(item.name)} · ${fmtDate(item.date)} · ${fmtTime(item.start)}</option>`).join("");
+        return `${pageHeader("Un paso a la vez", "Tiempo de enfoque", "Registra el tiempo que dedicas a tus actividades.")}
+          <div class="timer-wrap"><section class="card timer-card"><div class="field"><label for="focus-activity">ACTIVIDAD</label><select id="focus-activity" ${active ? "disabled" : ""}>${options || "<option value=\"\">No hay actividades pendientes</option>"}</select></div>
+          <p class="timer-status" id="timer-status">${active ? `${active.startedAt ? "En curso" : "En pausa"}: ${safeText(activityById(active.activityId)?.name || "Actividad")}` : "Elige una actividad para empezar."}</p><div class="timer-display" id="timer-display">${duration(active ? elapsed(active) : 0, true)}</div>
+          <div class="timer-controls"><button class="primary-button" id="start-timer" ${active || !pending.length ? "disabled" : ""}>▶ &nbsp; Iniciar</button><button class="secondary-button" id="pause-timer" ${!active?.startedAt ? "disabled" : ""}>Ⅱ &nbsp; Pausar</button><button class="secondary-button" id="resume-timer" ${!active || active.startedAt ? "disabled" : ""}>▶ &nbsp; Reanudar</button><button class="secondary-button" id="finish-timer" ${!active ? "disabled" : ""}>✓ &nbsp; Finalizar</button></div>
+          <p class="timer-note">Tu sesión queda guardada en este navegador, incluso si cierras la página.</p></section></div>`;
+      }
+      function renderStats() {
+        const complete = state.activities.filter((item) => item.completed).length;
+        const sessions = [...state.sessions].sort((a, b) => b.endedAt - a.endedAt);
+        const perActivity = [...state.activities].sort((a, b) => (b.seconds || 0) - (a.seconds || 0));
+        return `${pageHeader("Mira lo que has logrado", "Tu resumen", "Una vista clara de tus actividades y del tiempo que has invertido.")}
+          <section class="stats-cards"><article class="card metric"><div class="metric-label">TIEMPO REGISTRADO</div><div class="metric-value">${duration(totalTracked())}</div></article><article class="card metric"><div class="metric-label">ACTIVIDADES COMPLETADAS</div><div class="metric-value">${complete}</div></article><article class="card metric"><div class="metric-label">SESIONES DE ENFOQUE</div><div class="metric-value">${sessions.length + (state.activeSession ? 1 : 0)}</div></article></section>
+          <section class="history-section"><div class="section-heading"><h2>Tiempo por actividad</h2></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Tiempo registrado</th><th>Estado</th></tr></thead><tbody>${perActivity.length ? perActivity.map((item) => `<tr><td>${safeText(item.name)}</td><td>${fmtDate(item.date)}</td><td>${duration(item.seconds || 0, true)}</td><td><span class="badge ${item.completed ? "done" : ""}">${item.completed ? "Completada" : "Pendiente"}</span></td></tr>`).join("") : `<tr><td colspan="4"><div class="empty">Tus actividades aparecerán aquí cuando las agregues.</div></td></tr>`}</tbody></table></div></div></section>
+          <section class="history-section"><div class="section-heading"><h2>Sesiones recientes</h2><span class="small-note">${sessions.length} ${sessions.length === 1 ? "sesión" : "sesiones"}</span></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Actividad</th><th>Inicio</th><th>Duración</th><th>Estado</th></tr></thead><tbody>${sessions.length ? sessions.slice(0, 20).map((session) => `<tr><td>${safeText(session.name)}</td><td>${new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(new Date(session.startedAt))}</td><td>${duration(session.seconds, true)}</td><td><span class="badge">Finalizada</span></td></tr>`).join("") : `<tr><td colspan="4"><div class="empty">Aún no registras sesiones de enfoque.</div></td></tr>`}</tbody></table></div></div></section>`;
+      }
+      function render() {
+        const view = $("#view");
+        view.innerHTML = page === "agenda" ? renderAgenda() : page === "focus" ? renderFocus() : page === "stats" ? renderStats() : renderHome();
+        bindView();
+        updateClock();
+      }
+      function updateClock() {
+        const clock = $("#clock");
+        if (clock) clock.textContent = new Intl.DateTimeFormat("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
+        const timer = $("#timer-display");
+        if (timer && state.activeSession) timer.textContent = duration(elapsed(state.activeSession), true);
+      }
+      function bindView() {
+        const form = $("#activity-form");
+        if (form) form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const data = new FormData(form);
+          const name = String(data.get("name") || "").trim();
+          const date = String(data.get("date") || "");
+          const start = String(data.get("start") || "");
+          const end = String(data.get("end") || "");
+          if (!name) return alert("Escribe un nombre para la actividad.");
+          if (!date || !start || !end) return alert("Completa la fecha y el horario.");
+          if (start >= end) return alert("La hora final debe ser posterior a la hora de inicio.");
+          state.activities.push({ id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())), name, date, start, end, category: String(data.get("category") || "General"), completed: false, seconds: 0 });
+          save(); render();
+        });
+        const filter = $("#activity-filter");
+        if (filter) filter.addEventListener("change", () => { activityFilter = filter.value; render(); });
+        $$("[data-complete]").forEach((button) => button.addEventListener("click", () => {
+          const activity = activityById(button.dataset.complete);
+          if (activity) { activity.completed = true; save(); render(); }
+        }));
+        $$("[data-delete]").forEach((button) => button.addEventListener("click", () => {
+          const activity = activityById(button.dataset.delete);
+          if (!activity) return;
+          if (state.activeSession?.activityId === activity.id) return alert("Finaliza la sesión de enfoque antes de eliminar esta actividad.");
+          if (confirm(`¿Quieres eliminar “${activity.name}” y sus tiempos registrados?`)) {
+            state.activities = state.activities.filter((item) => item.id !== activity.id);
+            state.sessions = state.sessions.filter((session) => session.activityId !== activity.id);
+            save(); render();
+          }
+        }));
+        $$("[data-go]").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.go)));
+        $("#start-timer")?.addEventListener("click", () => {
+          const activity = activityById($("#focus-activity")?.value);
+          if (!activity || activity.completed) return;
+          state.activeSession = { activityId: activity.id, name: activity.name, seconds: 0, createdAt: Date.now(), startedAt: Date.now() };
+          save(); render();
+        });
+        $("#pause-timer")?.addEventListener("click", () => {
+          if (!state.activeSession?.startedAt) return;
+          state.activeSession.seconds = elapsed(state.activeSession);
+          state.activeSession.startedAt = null;
+          save(); render();
+        });
+        $("#resume-timer")?.addEventListener("click", () => {
+          if (!state.activeSession || state.activeSession.startedAt) return;
+          state.activeSession.startedAt = Date.now();
+          save(); render();
+        });
+        $("#finish-timer")?.addEventListener("click", () => {
+          if (!state.activeSession) return;
+          const session = state.activeSession;
+          const seconds = elapsed(session);
+          if (seconds < 1 && !confirm("La sesión no ha registrado tiempo. ¿Finalizarla de todas formas?")) return;
+          const activity = activityById(session.activityId);
+          if (activity) activity.seconds = (activity.seconds || 0) + seconds;
+          state.sessions.push({ activityId: session.activityId, name: session.name, startedAt: session.createdAt || Date.now() - seconds * 1000, endedAt: Date.now(), seconds });
+          state.activeSession = null;
+          save(); render();
+        });
+      }
+      $$(".nav-button").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.page)));
+      window.addEventListener("storage", (event) => {
+        if (event.key === STORAGE_KEY) {
+          try { state = { ...defaultState(), ...JSON.parse(event.newValue || "{}")} ; render(); } catch { /* conserva el estado actual */ }
+        }
+      });
+      render();
+      window.setInterval(updateClock, 1000);
+    })();
+  </script>
+</body>
+</html>
