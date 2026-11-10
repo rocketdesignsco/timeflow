@@ -1,27 +1,46 @@
 """Creación y conexión con la base de datos SQLite de TimeFlow."""
 
 from pathlib import Path
+from functools import wraps
 import os
 import sqlite3
+import threading
 
 
 DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "data" / "timeflow.db"
 DATABASE_PATH = Path(os.environ.get("TIMEFLOW_DB_PATH", DEFAULT_DATABASE_PATH))
 
 
+def _serialized(method):
+    """Serializa el acceso a la conexión SQLite, también desde fragmentos."""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+    return wrapper
+
+
 class Database:
     """Abre la base de datos y crea las tablas necesarias si no existen."""
 
     def __init__(self, database_path=DATABASE_PATH):
+        self._lock = threading.RLock()
         self.database_path = Path(database_path)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.connection = sqlite3.connect(self.database_path, timeout=15)
+        # Streamlit ejecuta los fragmentos y los reruns en hilos distintos.
+        # El RLock anterior mantiene las operaciones de esta conexión serializadas.
+        self.connection = sqlite3.connect(
+            self.database_path,
+            timeout=15,
+            check_same_thread=False,
+        )
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA busy_timeout = 15000")
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.create_tables()
 
+    @_serialized
     def create_tables(self):
         """Prepara las tablas que utilizarán las siguientes etapas."""
         self.connection.executescript(
@@ -56,6 +75,7 @@ class Database:
         )
         self.connection.commit()
 
+    @_serialized
     def add_activity(self, name, activity_date, start_time, end_time, category):
         """Guarda una actividad y devuelve el identificador asignado."""
         cursor = self.connection.execute(
@@ -68,6 +88,7 @@ class Database:
         self.connection.commit()
         return cursor.lastrowid
 
+    @_serialized
     def get_activities(self):
         """Devuelve las actividades ordenadas por fecha y hora."""
         cursor = self.connection.execute(
@@ -79,6 +100,7 @@ class Database:
         )
         return cursor.fetchall()
 
+    @_serialized
     def get_activity(self, activity_id):
         """Busca una actividad por su identificador."""
         cursor = self.connection.execute(
@@ -87,6 +109,7 @@ class Database:
         )
         return cursor.fetchone()
 
+    @_serialized
     def get_activities_for_date(self, activity_date):
         """Devuelve las actividades de una fecha concreta, ordenadas por hora."""
         cursor = self.connection.execute(
@@ -100,6 +123,7 @@ class Database:
         )
         return cursor.fetchall()
 
+    @_serialized
     def get_incomplete_activities(self):
         """Devuelve actividades que todavía no se han completado."""
         cursor = self.connection.execute(
@@ -112,6 +136,7 @@ class Database:
         )
         return cursor.fetchall()
 
+    @_serialized
     def get_next_activity(self, current_date, current_time):
         """Busca la próxima actividad pendiente, incluyendo la que está en curso."""
         cursor = self.connection.execute(
@@ -130,6 +155,7 @@ class Database:
         )
         return cursor.fetchone()
 
+    @_serialized
     def delete_activity(self, activity_id):
         """Elimina una actividad por su identificador."""
         cursor = self.connection.execute(
@@ -139,6 +165,7 @@ class Database:
         self.connection.commit()
         return cursor.rowcount > 0
 
+    @_serialized
     def create_session(self, activity_id, started_at):
         """Crea una sesión de cronómetro y devuelve su identificador."""
         open_session = self.connection.execute(
@@ -161,6 +188,7 @@ class Database:
         self.connection.commit()
         return cursor.lastrowid
 
+    @_serialized
     def update_session(self, session_id, duration_seconds, status):
         """Guarda el tiempo acumulado y el estado de una sesión."""
         self.connection.execute(
@@ -173,6 +201,7 @@ class Database:
         )
         self.connection.commit()
 
+    @_serialized
     def finish_session(self, session_id, ended_at, duration_seconds, status="completed"):
         """Cierra una sesión con su duración final y estado."""
         self.connection.execute(
@@ -185,6 +214,7 @@ class Database:
         )
         self.connection.commit()
 
+    @_serialized
     def set_activity_completed(self, activity_id, completed=True):
         """Actualiza el indicador de actividad completada."""
         self.connection.execute(
@@ -193,6 +223,7 @@ class Database:
         )
         self.connection.commit()
 
+    @_serialized
     def get_recoverable_session(self):
         """Busca una sesión activa o pausada para ofrecer su recuperación."""
         cursor = self.connection.execute(
@@ -208,6 +239,7 @@ class Database:
         )
         return cursor.fetchone()
 
+    @_serialized
     def get_total_seconds(self):
         """Suma el tiempo registrado en todas las sesiones."""
         cursor = self.connection.execute(
@@ -215,6 +247,7 @@ class Database:
         )
         return int(cursor.fetchone()[0])
 
+    @_serialized
     def get_completed_activity_count(self):
         """Cuenta las actividades marcadas como completadas."""
         cursor = self.connection.execute(
@@ -222,6 +255,7 @@ class Database:
         )
         return int(cursor.fetchone()[0])
 
+    @_serialized
     def get_activity_count_for_date(self, activity_date):
         """Cuenta las actividades programadas para una fecha."""
         cursor = self.connection.execute(
@@ -230,6 +264,7 @@ class Database:
         )
         return int(cursor.fetchone()[0])
 
+    @_serialized
     def get_activity_time_totals(self):
         """Devuelve el tiempo registrado para cada actividad."""
         cursor = self.connection.execute(
@@ -245,6 +280,7 @@ class Database:
         )
         return cursor.fetchall()
 
+    @_serialized
     def get_recent_sessions(self, limit=30):
         """Devuelve el historial de sesiones más recientes."""
         cursor = self.connection.execute(
@@ -260,6 +296,7 @@ class Database:
         )
         return cursor.fetchall()
 
+    @_serialized
     def get_setting(self, key, default=None):
         """Lee una preferencia guardada o devuelve el valor predeterminado."""
         cursor = self.connection.execute(
@@ -269,6 +306,7 @@ class Database:
         row = cursor.fetchone()
         return row[0] if row else default
 
+    @_serialized
     def set_setting(self, key, value):
         """Guarda una preferencia sencilla en SQLite."""
         self.connection.execute(
@@ -281,6 +319,7 @@ class Database:
         )
         self.connection.commit()
 
+    @_serialized
     def close(self):
         """Cierra la conexión al terminar la aplicación."""
         self.connection.close()
